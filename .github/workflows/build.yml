@@ -1,0 +1,144 @@
+name: Build
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  linux:
+    name: ${{ matrix.config.name }}
+    runs-on: ubuntu-latest
+    container: ubuntu:rolling
+    env:
+      DEBIAN_FRONTEND: "noninteractive"
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {
+            name: "Ubuntu Clang",
+            cc: "clang", cxx: "clang++",
+            cmake_configure_options: '-DCMAKE_EXE_LINKER_FLAGS="-v -fuse-ld=lld"',
+            build_type: "Release",
+          }
+          - {
+            name: "Ubuntu GCC",
+            cc: "gcc", cxx: "g++",
+            build_type: "Release",
+          }
+
+    steps:
+      - name: Update environment
+        shell: bash
+        run: |
+          # Update package lists
+          apt update -qq
+          # Install build tools
+          apt install -y \
+            clang \
+            cmake \
+            curl \
+            git \
+            libgl1-mesa-dev \
+            libx11-dev \
+            libx11-xcb-dev \
+            libxcb-dri3-dev \
+            libxcb-icccm4-dev \
+            libxcb-image0-dev \
+            libxcb-keysyms1-dev \
+            libxcb-randr0-dev \
+            libxcb-render-util0-dev \
+            libxcb-render0-dev \
+            libxcb-shape0-dev \
+            libxcb-sync-dev \
+            libxcb-util-dev \
+            libxcb-xfixes0-dev \
+            libxcb-xinerama0-dev \
+            libxcb-xkb-dev \
+            lld \
+            ninja-build \
+            pkg-config \
+            python3 \
+            python3-pip \
+            xkb-data \
+            xorg-dev
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Configure CMake
+        shell: bash
+        run: |
+          export CC=${{ matrix.config.cc }}
+          export CXX=${{ matrix.config.cxx }}
+
+          # Configure cmake
+          cmake . \
+            -Bbuild \
+            -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} \
+            -GNinja \
+            ${{ matrix.config.cmake_configure_options }}
+
+      - name: Build
+        shell: bash
+        run: |
+          cmake --build build
+
+  windows:
+    name: ${{ matrix.config.name }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {
+            name: "Windows MSVC",
+            cc: "cl", cxx: "cl",
+            compiler: "msvc",
+            build_type: "Release",
+            cmake_build_options: "--config Release",
+            cmake_configure_options: '-G "Visual Studio 17 2022" -A x64',
+          }
+          - {
+            name: "Windows Clang",
+            cc: "clang-cl", cxx: "clang-cl",
+            compiler: "clang",
+            build_type: "Release",
+            cmake_build_options: "--config Release",
+            cmake_configure_options: '-G "Visual Studio 17 2022" -A x64 -T "LLVM_v143" -DCMAKE_CXX_COMPILER="clang-cl.exe" -DCMAKE_C_COMPILER="clang-cl.exe" -DCMAKE_LINKER="lld.exe"',
+          }
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Configure LLVM
+        if: matrix.config.compiler == 'clang'
+        shell: pwsh
+        run: |
+          choco upgrade --no-progress llvm
+          curl -fsSL -o "LLVM_VS2017.zip" "https://github.com/zufuliu/llvm-utils/releases/download/v22.09/LLVM_VS2017.zip"
+          7z x -y "LLVM_VS2017.zip" >NUL
+          LLVM_VS2017\install.bat
+
+      - name: Configure CMake
+        shell: pwsh
+        run: |
+          $env:CC="${{ matrix.config.cc }}"
+          $env:CXX="${{ matrix.config.cxx }}"
+
+          # Configure CMake
+          cmake . `
+            -Bbuild `
+            -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} `
+            ${{ matrix.config.cmake_configure_options }}
+
+      - name: Build
+        shell: pwsh
+        run: |
+          cmake --build build ${{ matrix.config.cmake_build_options }}
