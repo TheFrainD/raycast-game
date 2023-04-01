@@ -9,6 +9,8 @@ file(GLOB_RECURSE HEADERS "include/*.h")
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
+target_include_directories(${PROJECT_NAME} PRIVATE include)
+
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE "/W4")
     target_compile_options(${PROJECT_NAME} PRIVATE "/WX")
@@ -16,3 +18,7 @@ if(MSVC)
 else()
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Werror -Wno-unused-parameter -Wno-unused-variable)
 endif()
+
+add_subdirectory(deps)
+
+target_link_libraries(${PROJECT_NAME} glfw glad)
