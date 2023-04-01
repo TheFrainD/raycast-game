@@ -1,5 +1,9 @@
 #pragma once
 
+#include <memory>
+
+#include "core/window.h"
+
 namespace core {
 
 class Game final {
@@ -16,6 +20,7 @@ public:
 
 private:
     bool running_ {};
+    std::unique_ptr<Window> window_ {};
 };
 
 }  // namespace core

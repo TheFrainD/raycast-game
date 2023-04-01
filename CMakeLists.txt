@@ -11,14 +11,16 @@ add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
 target_include_directories(${PROJECT_NAME} PRIVATE include)
 
-if(MSVC)
+if (MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE "/W4")
     target_compile_options(${PROJECT_NAME} PRIVATE "/WX")
     target_compile_options(${PROJECT_NAME} PRIVATE "/wd4100")
-else()
+else ()
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Werror -Wno-unused-parameter -Wno-unused-variable)
-endif()
+endif ()
 
 add_subdirectory(deps)
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE GLFW_INCLUDE_NONE)
 
 target_link_libraries(${PROJECT_NAME} glfw glad)
