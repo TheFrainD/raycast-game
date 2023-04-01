@@ -16,6 +16,13 @@ Language: Cpp
 NamespaceIndentation: None
 PointerAlignment: Right
 SortIncludes: 'true'
+IncludeCategories:
+  - Regex: '<([A-Za-z0-9\Q/-_\E])+>'
+    Priority: 1
+  - Regex: '^<.*\.(h|hpp)>'
+    Priority: 2
+  - Regex: '^".*\.(h|hpp)"'
+    Priority: 3
 SortUsingDeclarations: 'true'
 SpaceAfterCStyleCast: 'false'
 SpaceAfterLogicalNot: 'false'
