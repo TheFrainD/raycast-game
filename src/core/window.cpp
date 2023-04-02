@@ -14,7 +14,7 @@ namespace core {
 bool Window::glfw_init_ {};
 bool Window::glad_loaded_ {};
 
-Window::Window(const int width, const int height, const std::string &title) : data_ {width, height, title} {
+Window::Window(const int width, const int height, const std::string &title) : data_ {{width, height}, {0, 0}, title} {
     glfwSetErrorCallback(GlfwErrorCallback);
 
     if (!glfw_init_) {
@@ -24,9 +24,9 @@ Window::Window(const int width, const int height, const std::string &title) : da
         glfw_init_ = true;
     }
 
-    glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+    glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
@@ -39,10 +39,16 @@ Window::Window(const int width, const int height, const std::string &title) : da
     glfwSetWindowUserPointer(handle_, &data_);
 
     glfwSetFramebufferSizeCallback(handle_, [](GLFWwindow *handle, int width, int height) {
-        auto *const data = static_cast<Data *>(glfwGetWindowUserPointer(handle));
-        data->width      = width;
-        data->height     = height;
+        auto *const data         = static_cast<Data *>(glfwGetWindowUserPointer(handle));
+        data->framebuffer_size.x = width;
+        data->framebuffer_size.y = height;
         glViewport(0, 0, width, height);
+    });
+
+    glfwSetWindowSizeCallback(handle_, [](GLFWwindow *handle, int width, int height) {
+        auto *const data    = static_cast<Data *>(glfwGetWindowUserPointer(handle));
+        data->window_size.x = width;
+        data->window_size.y = height;
     });
 
     glfwMakeContextCurrent(handle_);
@@ -57,11 +63,14 @@ Window::Window(const int width, const int height, const std::string &title) : da
         glad_loaded_ = true;
     }
 
-    glViewport(0, 0, width, height);
+    Dimensions framebuffer_size;
+    glfwGetFramebufferSize(handle_, &framebuffer_size.x, &framebuffer_size.y);
+    glViewport(0, 0, framebuffer_size.x, framebuffer_size.y);
+    data_.framebuffer_size = framebuffer_size;
 }
 
 Window::~Window() {
-    if (handle_) {
+    if (handle_ != nullptr) {
         glfwDestroyWindow(handle_);
     }
 
@@ -71,15 +80,28 @@ Window::~Window() {
 }
 
 bool Window::IsOpen() const {
-    if (!handle_) {
+    if (handle_ == nullptr) {
         throw WindowHandleIsNullptr {};
     }
-
     return glfwWindowShouldClose(handle_) == 0;
 }
 
+Dimensions Window::GetSize() const {
+    if (handle_ == nullptr) {
+        throw WindowHandleIsNullptr {};
+    }
+    return data_.window_size;
+}
+
+Dimensions Window::GetFramebufferSize() const {
+    if (handle_ == nullptr) {
+        throw WindowHandleIsNullptr {};
+    }
+    return data_.framebuffer_size;
+}
+
 void Window::SwapBuffers() const {
-    if (!handle_) {
+    if (handle_ == nullptr) {
         throw WindowHandleIsNullptr {};
     }
     glfwSwapBuffers(handle_);

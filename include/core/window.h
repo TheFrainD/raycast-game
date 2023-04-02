@@ -17,6 +17,11 @@ public:
     WindowHandleIsNullptr() : WindowError("Window handle is nullptr") {}
 };
 
+struct Dimensions {
+    int x;
+    int y;
+};
+
 class Window {
 public:
     Window(int width, int height, const std::string &title);
@@ -28,6 +33,8 @@ public:
     Window &operator=(Window &&)      = delete;
 
     [[nodiscard]] bool IsOpen() const;
+    [[nodiscard]] Dimensions GetSize() const;
+    [[nodiscard]] Dimensions GetFramebufferSize() const;
     void SwapBuffers() const;
 
     static void PollEvents() noexcept;
@@ -37,8 +44,8 @@ private:
     static bool glad_loaded_;
 
     struct Data {
-        int width;
-        int height;
+        Dimensions window_size;
+        Dimensions framebuffer_size;
         std::string title;
     };
 
